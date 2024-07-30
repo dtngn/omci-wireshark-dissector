@@ -1056,6 +1056,27 @@ function addVlanTagFilter(tree, content)
 	end
 end
 
+function addIpv4McastAddrTable(tree, content)
+	local offset = 0
+	local bytes
+
+	bytes = content(offset, 2)
+	tree:add(bytes, "GEM port: " .. bytes:uint())
+	offset = offset + 2
+
+	bytes = content(offset, 2)
+	tree:add(bytes, "Secondary key: " .. bytes:uint())
+	offset = offset + 2
+
+	bytes = content(offset, 4)
+	tree:add(bytes, "Start IPv4 address: " .. bytes(0, 1):uint() .. "." .. bytes(1, 1):uint() .. "." .. bytes(2, 1):uint() .. "." .. bytes(3, 1):uint())
+	offset = offset + 4
+
+	bytes = content(offset, 4)
+	tree:add(bytes, "End IPv4 address: " .. bytes(0, 1):uint() .. "." .. bytes(1, 1):uint() .. "." .. bytes(2, 1):uint() .. "." .. bytes(3, 1):uint())
+	offset = offset + 4
+end
+
 function addAttrList(tree, content, offset, meClass, hasValue, hasMask)
 	local mask = 0
 	if hasMask then
@@ -1083,11 +1104,14 @@ function addAttrList(tree, content, offset, meClass, hasValue, hasMask)
 			if hasValue then
 				local attr_bytes = content(offset, attr_def.length)
 				local attr = attrs:add(attr_bytes, string.format("%2.2d", i) .. ": " .. attr_def.attname .. " (" .. attr_bytes .. ")")
+				if meClass:uint() == 84 and i == 1 then
+					addVlanTagFilter(attr, attr_bytes)
+				end
 				if meClass:uint() == 171 and i == 6 then
 					addExtVlanOp(attr, attr_bytes)
 				end
-				if meClass:uint() == 84 and i == 1 then
-					addVlanTagFilter(attr, attr_bytes)
+				if meClass:uint() == 281 and i == 9 then
+					addIpv4McastAddrTable(attr, attr_bytes)
 				end
 				offset = offset + attr_def.length
 			else

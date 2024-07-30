@@ -982,6 +982,41 @@ local omci_def = {
 
 setmetatable(omci_def, mt2)
 
+function addAttrList(tree, content, offset, meClass, hasValue, hasMask)
+	local mask = 0
+	if hasMask then
+		mask = content(offset, 2)
+		offset = offset + 2
+		local masktree = tree:add(mask, "Attribute Mask (0x" .. mask .. ")" )
+		masktree:add(mask, toBinStr(tostring(mask)))
+	end
+
+	local attrs = tree:add(content, "Attribute List")
+	local attributes = omci_def[meClass:uint()]
+	for i = 1,#attributes do
+		local attr = attributes[i]
+		local hasAttr = false
+		if hasMask then
+			if mask:bitfield(i - 1, 1) == 1 then
+				hasAttr = true
+			end
+		else
+			if attr.setbycreate then
+				hasAttr = true
+			end
+		end
+		if hasAttr then
+			if hasValue then
+				local attr_bytes = content(offset, attr.length)
+				attrs:add(attr_bytes, string.format("%2.2d", i) .. ": " .. attr.attname .. " (" .. attr_bytes .. ")")
+				offset = offset + attr.length
+			else
+				attrs:add(string.format("%2.2d", i) .. ": " .. attr.attname)
+			end
+		end
+	end
+end
+
 -- GUI field definition
 local f = omciproto.fields
 f.tci            = ProtoField.uint16( "omciproto.tci",             "Transaction Correlation ID")
@@ -1040,7 +1075,7 @@ function omciproto.dissector (buffer, pinfo, tree)
 	local me_class_name = omci_def[me_class:uint()].me_class_name
 
 	local devid_subtree = subtree:add(buffer(offset, 4), "Message Identifier, ME Class = " .. me_class_name .. ", Instance = " .. me_instance:uint())
---	devid_subtree:add(f.me_class, me_class)
+	devid_subtree:add(f.me_class, me_class)
 	devid_subtree:add(f.me_class_str, me_class_name .. " (" .. me_class .. ")")
 	devid_subtree:add(f.me_id, me_instance)
 	offset = offset + 4
@@ -1048,56 +1083,20 @@ function omciproto.dissector (buffer, pinfo, tree)
 	-- OMCI Attributes and/or message result
 	local content = buffer(offset, math.min(32, buffer:len() - offset))
 	if( (msg_type_mt == "Get" or msg_type_mt == "Get Current Data" or msg_type_mt == "Get Next") and msg_type_ar == 1 and msg_type_ak == 0) then
-		local attribute_mask = content(0, 2)
-		local attributemask_subtree = subtree:add(attribute_mask, "Attribute Mask (0x" .. attribute_mask .. ")" )
-		attributemask_subtree:add(attribute_mask, toBinStr(tostring(attribute_mask)))
-		local content_subtree = subtree:add(content, "Attribute List")
-		attributes = omci_def[me_class:uint()]
-		for i = 1,#attributes do
-			local attr = attributes[i]
-			if attribute_mask:bitfield(i-1,1) == 1 then
-				content_subtree:add(string.format("%2.2d", i) .. ": " .. attr.attname)
-			end
-		end
+		addAttrList(subtree, content, 0, me_class, false, true)
 	end
 
 	if( (msg_type_mt == "Get" or msg_type_mt == "Get Current Data" or msg_type_mt == "Get Next") and msg_type_ar == 0 and msg_type_ak == 1) then
 		subtree:add(content(0,1), "Result: " .. msg_result[content(0,1):uint()] .. " (" .. content(0,1) .. ")")
-		local attribute_mask = content(1, 2)
-		local attributemask_subtree = subtree:add(attribute_mask, "Attribute Mask (0x" .. attribute_mask .. ")" )
-		attributemask_subtree:add(attribute_mask, toBinStr(tostring(attribute_mask)))
-		local content_subtree = subtree:add(content, "Attribute List")
-		local attributes = {}
-		local attribute_offset = 0
-		attributes = omci_def[me_class:uint()]
-		attribute_offset=3
-		for i = 1,#attributes do
-			local attr = attributes[i]
-			if attribute_mask:bitfield(i-1,1) == 1 then
-				local attr_bytes = content(attribute_offset, attr.length)
-				content_subtree:add(attr_bytes, string.format("%2.2d", i) .. ": " .. attr.attname .. " (" .. attr_bytes .. ")")
-				attribute_offset = attribute_offset + attr.length
-			end
-		end
+		addAttrList(subtree, content, 1, me_class, true, true)
 	end
 
 	if ((msg_type_mt == "Set" and msg_type_ar == 1 and msg_type_ak == 0) or (msg_type_mt == "AVC Notification")) then
-		local attribute_mask = content(0, 2)
-		local attributemask_subtree = subtree:add(attribute_mask, "Attribute Mask (0x" .. attribute_mask .. ")" )
-		attributemask_subtree:add(attribute_mask, toBinStr(tostring(attribute_mask)))
-		local content_subtree = subtree:add(content, "Attribute List")
-		local attributes = {}
-		local attribute_offset = 0
-		attributes = omci_def[me_class:uint()]
-		attribute_offset=2
-		for i = 1,#attributes do
-			local attr = attributes[i]
-			if attribute_mask:bitfield(i-1,1) == 1 then
-				local attr_bytes = content(attribute_offset, attr.length)
-				content_subtree:add(attr_bytes, string.format("%2.2d", i) .. ": " .. attr.attname .. " (" .. attr_bytes .. ")")
-				attribute_offset = attribute_offset + attr.length
-			end
-		end
+		addAttrList(subtree, content, 0, me_class, true, true)
+	end
+
+	if( msg_type_mt == "Create" and msg_type_ar == 1 and msg_type_ak == 0) then
+		addAttrList(subtree, content, 0, me_class, true, false)
 	end
 
 	if((msg_type_mt == "Set" or
@@ -1105,22 +1104,6 @@ function omciproto.dissector (buffer, pinfo, tree)
 		msg_type_mt == "MIB Reset" or
 		msg_type_mt == "Test" ) and msg_type_ar == 0 and msg_type_ak == 1) then
 		subtree:add(content(0,1), "Result: " .. msg_result[content(0,1):uint()] .. " (" .. content(0,1) .. ")")
-	end
-
-	if( msg_type_mt == "Create" and msg_type_ar == 1 and msg_type_ak == 0) then
-		local content_subtree = subtree:add(content, "Attribute List")
-		local attributes = {}
-		local attribute_offset = 0
-		attributes = omci_def[me_class:uint()]
-		attribute_offset=0
-		for i = 1,#attributes do
-			local attr = attributes[i]
-			if attr.setbycreate then
-				local attr_bytes = content(attribute_offset, attr.length)
-				content_subtree:add(attr_bytes, string.format("%2.2d", i) .. ": " .. attr.attname .. " (" .. attr_bytes .. ")")
-				attribute_offset = attribute_offset + attr.length
-			end
-		end
 	end
 
 	if(msg_type_mt == "MIB Upload" and msg_type_ar == 0 and msg_type_ak == 1) then
@@ -1136,22 +1119,7 @@ function omciproto.dissector (buffer, pinfo, tree)
 		local upload_me_class = content(0,2)
 		upload_substree:add( upload_me_class, "Managed Entity Class: " .. omci_def[upload_me_class:uint()].me_class_name .. " (" .. upload_me_class:uint() .. ")")
 		upload_substree:add(content(2,2), "Managed Entity Instance: " .. content(2,2):uint() .. " (0x" .. content(2,2) .. ")")
-		local attribute_mask = content(4, 2)
-		local attributemask_subtree = upload_substree:add(attribute_mask, "Attribute Mask (0x" .. attribute_mask .. ")" )
-		attributemask_subtree:add(attribute_mask, toBinStr(tostring(attribute_mask)))
-		local content_subtree = upload_substree:add(content, "Attribute List")
-		local attributes = {}
-		local attribute_offset
-		attributes = omci_def[upload_me_class:uint()]
-		attribute_offset=6
-		for i = 1,#attributes do
-			local attr = attributes[i]
-			if attribute_mask:bitfield(i-1,1) == 1 then
-				local attr_bytes = content(attribute_offset, attr.length)
-				content_subtree:add(attr_bytes, string.format("%2.2d", i) .. ": " .. attr.attname .. " (" .. attr_bytes .. ")")
-				attribute_offset = attribute_offset + attr.length
-			end
-		end
+		addAttrList(upload_substree, content, 4, upload_me_class, true, true)
 		me_class_name = me_class_name .. " (" .. omci_def[upload_me_class:uint()].me_class_name .. ")"
 	end
 

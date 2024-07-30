@@ -963,6 +963,12 @@ function addIpv4McastAddrTable(tree, content)
 	offset = offset + 4
 end
 
+local specialMeAttrs = {
+	[ 84] = { [1] = addVlanTagFilter },
+	[171] = { [6] = addExtVlanOp },
+	[281] = { [9] = addIpv4McastAddrTable },
+}
+
 function addAttrList(tree, content, offset, meClass, hasValue, hasMask)
 	local mask = 0
 	if hasMask then
@@ -990,14 +996,11 @@ function addAttrList(tree, content, offset, meClass, hasValue, hasMask)
 			if hasValue then
 				local attr_bytes = content(offset, attr_def.length)
 				local attr = attrs:add(attr_bytes, string.format("%2.2d", i) .. ": " .. attr_def.attname .. " (" .. attr_bytes .. ")")
-				if meClass:uint() == 84 and i == 1 then
-					addVlanTagFilter(attr, attr_bytes)
-				end
-				if meClass:uint() == 171 and i == 6 then
-					addExtVlanOp(attr, attr_bytes)
-				end
-				if meClass:uint() == 281 and i == 9 then
-					addIpv4McastAddrTable(attr, attr_bytes)
+				local specialMe = specialMeAttrs[meClass:uint()]
+				if specialMe ~= nil then
+					if specialMe[i] ~= nil then
+						specialMe[i](attr, attr_bytes)
+					end
 				end
 				offset = offset + attr_def.length
 			else

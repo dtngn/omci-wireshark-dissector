@@ -50,10 +50,6 @@ end
 -- Create a new dissector
 omciproto = Proto ("omci", "OMCI Protocol")
 
--- init function
-function omciproto.init()
-end
-
 local msgtype_meta = {
 	__index = function(t, k)
 		if k < 4 or k > 28 then
@@ -373,9 +369,9 @@ local omci_def = {
 	{ attname="Operational State",    length=1,  setbycreate=false },
 	{ attname="Data Rate TX",         length=8,  setbycreate=false },
 	{ attname="Data Rate RX",         length=8,  setbycreate=false },
-	{ attname="TX Pwr Level",         length=16, setbycreate=false },
+	{ attname="TX Power Level",       length=16, setbycreate=false },
 	{ attname="ARC",                  length=1,  setbycreate=false },
-	{ attname="ARC Intvl",            length=1,  setbycreate=false }},
+	{ attname="ARC Interval",         length=1,  setbycreate=false }},
 
 [130] = { me_class_name = "802.1P Mapper Service Profile",
 	{ attname="TP Pointer",                                length=2,  setbycreate=true  },
@@ -416,7 +412,7 @@ local omci_def = {
 [134] = { me_class_name = "IP Host config data",
 	{ attname="IP Options",            length=1,  setbycreate=false },
 	{ attname="MAC Address",           length=6,  setbycreate=false },
-	{ attname="ONU Identifier",        length=1,  setbycreate=false },
+	{ attname="ONU Identifier",        length=25, setbycreate=false },
 	{ attname="IP Address",            length=4,  setbycreate=false },
 	{ attname="Mask",                  length=4,  setbycreate=false },
 	{ attname="Gateway",               length=4,  setbycreate=false },
@@ -427,8 +423,8 @@ local omci_def = {
 	{ attname="Current Gateway",       length=4,  setbycreate=false },
 	{ attname="Current Primary DNS",   length=4,  setbycreate=false },
 	{ attname="Current Secondary DNS", length=4,  setbycreate=false },
-	{ attname="Domain Name",           length=12, setbycreate=false },
-	{ attname="Host Name",             length=12, setbycreate=false },
+	{ attname="Domain Name",           length=25, setbycreate=false },
+	{ attname="Host Name",             length=25, setbycreate=false },
 	{ attname="Relay Agent Options",   length=2,  setbycreate=false }},
 
 [137] = { me_class_name = "Network address",
@@ -443,7 +439,7 @@ local omci_def = {
 	{ attname="VoIP Configuration Address Pointer",   length=2,  setbycreate=false },
 	{ attname="VoIP Configuration State",             length=1,  setbycreate=false },
 	{ attname="Retrieve Profile",                     length=1,  setbycreate=false },
-	{ attname="Profile Version",                      length=10, setbycreate=false }},
+	{ attname="Profile Version",                      length=25, setbycreate=false }},
 
 [141] = { me_class_name = "VoIP line status",
 	{ attname="VoIP Codec Used",           length=2,  setbycreate=false },
@@ -451,8 +447,8 @@ local omci_def = {
 	{ attname="VoIP Port Session Type",    length=1,  setbycreate=false },
 	{ attname="VoIP Call 1 Packet Period", length=2,  setbycreate=false },
 	{ attname="VoIP Call 2 Packet Period", length=2,  setbycreate=false },
-	{ attname="VoIP Call 1 Dest Addr",     length=10, setbycreate=false },
-	{ attname="VoIP Call 2 Dest Addr",     length=10, setbycreate=false },
+	{ attname="VoIP Call 1 Dest Addr",     length=25, setbycreate=false },
+	{ attname="VoIP Call 2 Dest Addr",     length=25, setbycreate=false },
 	{ attname="VoIP Line State",           length=1,  setbycreate=false },
 	{ attname="Emergency Call Status",     length=1,  setbycreate=false }},
 
@@ -560,7 +556,7 @@ local omci_def = {
 	{ attname="Impaired blocks",       length=4, setbycreate=false }},
 
 [268] = { me_class_name = "GEM Port Network CTP",
-	{ attname="Port id value",                           length=2, setbycreate=true  },
+	{ attname="Port ID",                                 length=2, setbycreate=true  },
 	{ attname="T-CONT pointer",                          length=2, setbycreate=true  },
 	{ attname="Direction",                               length=1, setbycreate=true  },
 	{ attname="Traffic management pointer for upstream", length=2, setbycreate=true  },
@@ -652,12 +648,12 @@ local omci_def = {
 	{ attname="Operational state",                         length=1,  setbycreate=false },
 	{ attname="GAL profile pointer",                       length=2,  setbycreate=true  },
 	{ attname="GAL loopback configuration",                length=1,  setbycreate=true  },
-	{ attname="Multicast address table",                   length=12, setbycreate=false }},
+	{ attname="IPv4 Multicast address table",              length=12, setbycreate=false },
+	{ attname="IPv6 Multicast address table",              length=24, setbycreate=false }},
 
 [287] = { me_class_name = "OMCI",
 	{ attname="ME Type Table",      length=2, setbycreate=false },
 	{ attname="Message Type Table", length=2, setbycreate=false }},
-
 
 [290] = { me_class_name = "Dot1X Port Extension Package",
 	{ attname="Dot1x Enable",                         length=1, setbycreate=false },
@@ -705,25 +701,29 @@ local omci_def = {
 [309] = { me_class_name = "Multicast operations profile",
 	{ attname="IGMP version",                      length=1,  setbycreate=true  },
 	{ attname="IGMP function",                     length=1,  setbycreate=true  },
-	{ attname="Immediate leave",                   length=1,  setbycreate=true  },
-	{ attname="Upstream IGMP TCI",                 length=2,  setbycreate=true  },
-	{ attname="Upstream IGMP tag control",         length=1,  setbycreate=true  },
-	{ attname="Upstream IGMP rate",                length=4,  setbycreate=true  },
-	{ attname="Dynamic access control list table", length=24, setbycreate=false },
-	{ attname="Static access control list table",  length=24, setbycreate=false },
-	{ attname="Lost groups list table",            length=10, setbycreate=false },
-	{ attname="Robustness",                        length=1,  setbycreate=true  },
-	{ attname="Querier IP address",                length=4,  setbycreate=true  },
-	{ attname="Query interval",                    length=4,  setbycreate=true  },
-	{ attname="Query max response time",           length=4,  setbycreate=true  },
-	{ attname="Last member query interval",        length=4,  setbycreate=false }},
+	{ attname="Immediate leave",                     length=1,  setbycreate=true  },
+	{ attname="Upstream IGMP TCI",                   length=2,  setbycreate=true  },
+	{ attname="Upstream IGMP tag control",           length=1,  setbycreate=true  },
+	{ attname="Upstream IGMP rate",                  length=4,  setbycreate=true  },
+	{ attname="Dynamic access control list table",   length=24, setbycreate=false },
+	{ attname="Static access control list table",    length=24, setbycreate=false },
+	{ attname="Lost groups list table",              length=10, setbycreate=false },
+	{ attname="Robustness",                          length=1,  setbycreate=true  },
+	{ attname="Querier IP address",                  length=4,  setbycreate=true  },
+	{ attname="Query interval",                      length=4,  setbycreate=true  },
+	{ attname="Query max response time",             length=4,  setbycreate=true  },
+	{ attname="Last member query interval",          length=4,  setbycreate=false },
+	{ attname="Unauthorized join request behaviour", length=1, setbycreate=false  },
+	{ attname="Downstream IGMP and multicast TCI",   length=3,  setbycreate=true  }},
 
 [310] = { me_class_name = "Multicast subscriber config info",
-	{ attname="ME type",                              length=1, setbycreate=true },
-	{ attname="Multicast operations profile pointer", length=2, setbycreate=true },
-	{ attname="Max simultaneous groups",              length=2, setbycreate=true },
-	{ attname="Max multicast bandwidth",              length=4, setbycreate=true },
-	{ attname="Bandwidth enforcement",                length=1, setbycreate=true }},
+	{ attname="ME type",                              length=1,  setbycreate=true  },
+	{ attname="Multicast operations profile pointer", length=2,  setbycreate=true  },
+	{ attname="Max simultaneous groups",              length=2,  setbycreate=true  },
+	{ attname="Max multicast bandwidth",              length=4,  setbycreate=true  },
+	{ attname="Bandwidth enforcement",                length=1,  setbycreate=true  },
+	{ attname="Multicast service package table",      length=20, setbycreate=false },
+	{ attname="Allowed preview groups table",         length=22, setbycreate=false }},
 
 [311] = { me_class_name = "Multicast Subscriber Monitor",
 	{ attname="ME type",                     length=1,  setbycreate=true  },
@@ -857,11 +857,21 @@ local omci_def = {
 	{ attname="OMCI MIC error count",                            length=4, setbycreate=false }},
 
 [347] = { me_class_name = "IPv6 host config data",
-	{ attname="Administrative state", length=1, setbycreate=false },
-	{ attname="Operational state",    length=1, setbycreate=false },
-	{ attname="Interdomain name",     length=4, setbycreate=false },
-	{ attname="TCP UDP pointer",      length=2, setbycreate=false },
-	{ attname="IANA assigned Port",   length=2, setbycreate=false }},
+	{ attname="IP options",                    length=1,  setbycreate=true  },
+	{ attname="MAC address",                   length=6,  setbycreate=true  },
+	{ attname="Onu identifier",                length=25, setbycreate=true  },
+	{ attname="IPv6 link local address",       length=16, setbycreate=true  },
+	{ attname="IPv6 address",                  length=16, setbycreate=true  },
+	{ attname="Default router",                length=16, setbycreate=true  },
+	{ attname="Primary DNS",                   length=16, setbycreate=true  },
+	{ attname="Secondary DNS",                 length=16, setbycreate=true  },
+	{ attname="Current address table",         length=24, setbycreate=true  },
+	{ attname="Current default router table",  length=16, setbycreate=true  },
+	{ attname="Current DNS table",             length=16, setbycreate=true  },
+	{ attname="DHCP unique identifier (DUID)", length=25, setbycreate=true  },
+	{ attname="On-link prefix",                length=17, setbycreate=false },
+	{ attname="Current on-link prefix table",  length=26, setbycreate=false },
+	{ attname="Relay agent options",           length=2,  setbycreate=false }},
 
 }
 

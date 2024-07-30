@@ -874,55 +874,71 @@ function addExtVlanOp(tree, content)
 
 	bytes = content(offset, 1)
 	val = bytes:bitfield(0, 4)
-	tree:add(bytes, "Filter outer priority: " .. "" .. "(" .. val .. ")")
+	tree:add(bytes, "Filter outer priority: " .. val)
 	bytes = content(offset, 3)
 	val = bytes:bitfield(4, 13)
-	tree:add(bytes, "Filter outer VID: " .. "" .. "(" .. val .. ")")
+	if val ~= 4096 then
+		tree:add(bytes, "Filter outer VID: " .. val)
+	end
 	bytes = content(offset + 2, 1)
 	val = bytes:bitfield(1, 3)
-	tree:add(bytes, "Filter outer TPID/DEI: " .. "" .. "(" .. val .. ")")
+	if val ~= 0 then
+		tree:add(bytes, "Filter outer TPID/DEI: " .. val)
+	end
 	offset = offset + 4
 
 	bytes = content(offset, 1)
 	val = bytes:bitfield(0, 4)
-	tree:add(bytes, "Filter inner priority: " .. "" .. "(" .. val .. ")")
+	tree:add(bytes, "Filter inner priority: " .. val)
 	bytes = content(offset, 3)
 	val = bytes:bitfield(4, 13)
-	tree:add(bytes, "Filter inner VID: " .. "" .. "(" .. val .. ")")
+	if val ~= 4096 then
+		tree:add(bytes, "Filter inner VID: " .. val)
+	end
 	bytes = content(offset + 2, 1)
 	val = bytes:bitfield(1, 3)
-	tree:add(bytes, "Filter inner TPID/DEI: " .. "" .. "(" .. val .. ")")
+	if val ~= 0 then
+		tree:add(bytes, "Filter inner TPID/DEI: " .. val)
+	end
 	bytes = content(offset + 2, 2)
 	val = bytes:bitfield(4, 8)
-	tree:add(bytes, "Filter on extended criteria: " .. "" .. "(" .. val .. ")")
+	if val ~= 0 then
+		tree:add(bytes, "Filter on extended criteria: " .. val)
+	end
 	bytes = content(offset + 3, 1)
 	val = bytes:bitfield(4, 4)
-	tree:add(bytes, "Filter on ethertype: " .. "" .. "(" .. val .. ")")
+	if val ~= 0 then
+		tree:add(bytes, "Filter on ethertype: " .. val)
+	end
 	offset = offset + 4
 
 	bytes = content(offset, 1)
 	val = bytes:bitfield(0, 2)
-	tree:add(bytes, "Treatment tags to remove: " .. "" .. "(" .. val .. ")")
+	tree:add(bytes, "Treatment tags to remove: " .. val)
 	bytes = content(offset + 1, 1)
 	val = bytes:bitfield(4, 4)
-	tree:add(bytes, "Treatment outer priority: " .. "" .. "(" .. val .. ")")
-	bytes = content(offset + 2, 2)
-	val = bytes:bitfield(0, 13)
-	tree:add(bytes, "Treatment outer VID: " .. "" .. "(" .. val .. ")")
-	bytes = content(offset + 3, 1)
-	val = bytes:bitfield(5, 3)
-	tree:add(bytes, "Treatment outer TPID/DEI: " .. "" .. "(" .. val .. ")")
+	if val ~= 15 then
+		tree:add(bytes, "Treatment outer priority: " .. val)
+		bytes = content(offset + 2, 2)
+		val = bytes:bitfield(0, 13)
+		tree:add(bytes, "Treatment outer VID: " .. val)
+		bytes = content(offset + 3, 1)
+		val = bytes:bitfield(5, 3)
+		tree:add(bytes, "Treatment outer TPID/DEI: " .. val)
+	end
 	offset = offset + 4
 
 	bytes = content(offset + 1, 1)
 	val = bytes:bitfield(4, 4)
-	tree:add(bytes, "Treatment inner priority: " .. "" .. "(" .. val .. ")")
-	bytes = content(offset + 2, 2)
-	val = bytes:bitfield(0, 13)
-	tree:add(bytes, "Treatment inner VID: " .. "" .. "(" .. val .. ")")
-	bytes = content(offset + 3, 1)
-	val = bytes:bitfield(5, 3)
-	tree:add(bytes, "Treatment inner TPID/DEI: " .. "" .. "(" .. val .. ")")
+	if val ~= 15 then
+		tree:add(bytes, "Treatment inner priority: " .. val)
+		bytes = content(offset + 2, 2)
+		val = bytes:bitfield(0, 13)
+		tree:add(bytes, "Treatment inner VID: " .. val)
+		bytes = content(offset + 3, 1)
+		val = bytes:bitfield(5, 3)
+		tree:add(bytes, "Treatment inner TPID/DEI: " .. val)
+	end
 	offset = offset + 4
 end
 
@@ -982,25 +998,13 @@ function addAttrList(tree, content, offset, meClass, hasValue, hasMask)
 	local attrs_def = omci_def[meClass:uint()]
 	for i = 1,#attrs_def do
 		local attr_def = attrs_def[i]
-		local hasAttr = false
-		if hasMask then
-			if mask:bitfield(i - 1, 1) == 1 then
-				hasAttr = true
-			end
-		else
-			if attr_def.setbycreate then
-				hasAttr = true
-			end
-		end
-		if hasAttr then
+		if (hasMask and mask:bitfield(i - 1, 1) == 1) or (not hasMask and attr_def.setbycreate) then
 			if hasValue then
 				local attr_bytes = content(offset, attr_def.length)
-				local attr = attrs:add(attr_bytes, string.format("%2.2d", i) .. ": " .. attr_def.attname .. " (" .. attr_bytes .. ")")
+				local attr = attrs:add(attr_bytes, string.format("%2.2d", i) .. ": " .. attr_def.attname .. " (0x" .. attr_bytes .. ")")
 				local specialMe = specialMeAttrs[meClass:uint()]
-				if specialMe ~= nil then
-					if specialMe[i] ~= nil then
-						specialMe[i](attr, attr_bytes)
-					end
+				if specialMe ~= nil and specialMe[i] ~= nil then
+					specialMe[i](attr, attr_bytes)
 				end
 				offset = offset + attr_def.length
 			else

@@ -40,7 +40,38 @@
 
 --]]
 
-require "BinDecHex"
+--[[
+	require "BinDecHex"
+	Copied from http://www.dialectronics.com/Lua/code/shtml
+	@param s Hexadecimal string.
+--]]
+function Hex2Bin(s)
+	local ret = ""
+	local i = 0
+	local hex2bin = {
+		["0"] = "0000",
+		["1"] = "0001",
+		["2"] = "0010",
+		["3"] = "0011",
+		["4"] = "0100",
+		["5"] = "0101",
+		["6"] = "0110",
+		["7"] = "0111",
+		["8"] = "1000",
+		["9"] = "1001",
+		["a"] = "1010",
+		["b"] = "1011",
+		["c"] = "1100",
+		["d"] = "1101",
+		["e"] = "1110",
+		["f"] = "1111"
+	}
+	for i in string.gmatch(s, ".") do
+		i = string.lower(i)
+		ret = ret..hex2bin[i].." "
+	end
+	return ret
+end
 
 -- Create a new dissector
 omciproto = Proto ("omci", "OMCI Protocol")
@@ -841,7 +872,7 @@ function omciproto.dissector (buffer, pinfo, tree)
 	if( (msg_type_mt == "Get" or msg_type_mt == "Get Current Data" or msg_type_mt == "Get Next") and msg_type_ar == 1 and msg_type_ak == 0) then
 		local attribute_mask = content(0, 2)
 		local attributemask_subtree = subtree:add(attribute_mask, "Attribute Mask (0x" .. attribute_mask .. ")" )
-		attributemask_subtree:add(attribute_mask, tostring(BinDecHex.Hex2Bin(tostring(attribute_mask))))
+		attributemask_subtree:add(attribute_mask, tostring(Hex2Bin(tostring(attribute_mask))))
 		local content_subtree = subtree:add(content, "Attribute List")
 		attributes = omci_def[me_class:uint()]
 		for i = 1,#attributes do
@@ -856,7 +887,7 @@ function omciproto.dissector (buffer, pinfo, tree)
 		subtree:add(content(0,1), "Result: " .. msg_result[content(0,1):uint()] .. " (" .. content(0,1) .. ")")
 		local attribute_mask = content(1, 2)
 		local attributemask_subtree = subtree:add(attribute_mask, "Attribute Mask (0x" .. attribute_mask .. ")" )
-		attributemask_subtree:add(attribute_mask, tostring(BinDecHex.Hex2Bin(tostring(attribute_mask))))
+		attributemask_subtree:add(attribute_mask, tostring(Hex2Bin(tostring(attribute_mask))))
 		local content_subtree = subtree:add(content, "Attribute List")
 		local attributes = {}
 		local attribute_offset = 0
@@ -875,7 +906,7 @@ function omciproto.dissector (buffer, pinfo, tree)
 	if( msg_type_mt == "Set" and msg_type_ar == 1 and msg_type_ak == 0) then
 		local attribute_mask = content(0, 2)
 		local attributemask_subtree = subtree:add(attribute_mask, "Attribute Mask (0x" .. attribute_mask .. ")" )
-		attributemask_subtree:add(attribute_mask, tostring(BinDecHex.Hex2Bin(tostring(attribute_mask))))
+		attributemask_subtree:add(attribute_mask, tostring(Hex2Bin(tostring(attribute_mask))))
 		local content_subtree = subtree:add(content, "Attribute List")
 		local attributes = {}
 		local attribute_offset = 0
@@ -929,7 +960,7 @@ function omciproto.dissector (buffer, pinfo, tree)
 		upload_substree:add(content(2,2), "Managed Entity Instance: " .. content(2,2):uint() .. " (0x" .. content(2,2) .. ")")
 		local attribute_mask = content(4, 2)
 		local attributemask_subtree = upload_substree:add(attribute_mask, "Attribute Mask (0x" .. attribute_mask .. ")" )
-		attributemask_subtree:add(attribute_mask, tostring(BinDecHex.Hex2Bin(tostring(attribute_mask))))
+		attributemask_subtree:add(attribute_mask, tostring(Hex2Bin(tostring(attribute_mask))))
 		local content_subtree = upload_substree:add(content, "Attribute List")
 		local attributes = {}
 		local attribute_offset

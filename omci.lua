@@ -868,6 +868,22 @@ local omci_def = {
 
 setmetatable(omci_def, mt2)
 
+function addVlanTagFilter(tree, content)
+	local offset = 0
+	local bytes, vid, pbit, dei
+
+	while offset < 12 do
+		bytes = content(offset, 2)
+		if bytes:uint() ~= 0 then
+			pbit = bytes:bitfield(0, 3)
+			dei = bytes:bitfield(3, 1)
+			vid = bytes:bitfield(4, 12)
+			tree:add(bytes, "VID=" .. vid .. ", PCP=" .. pbit .. ", DEI=" .. dei)
+		end
+		offset = offset + 2
+	end
+end
+
 function addAttrList(tree, content, offset, meClass, hasValue, hasMask)
 	local mask = 0
 	if hasMask then
@@ -878,26 +894,29 @@ function addAttrList(tree, content, offset, meClass, hasValue, hasMask)
 	end
 
 	local attrs = tree:add(content, "Attribute List")
-	local attributes = omci_def[meClass:uint()]
-	for i = 1,#attributes do
-		local attr = attributes[i]
+	local attrs_def = omci_def[meClass:uint()]
+	for i = 1,#attrs_def do
+		local attr_def = attrs_def[i]
 		local hasAttr = false
 		if hasMask then
 			if mask:bitfield(i - 1, 1) == 1 then
 				hasAttr = true
 			end
 		else
-			if attr.setbycreate then
+			if attr_def.setbycreate then
 				hasAttr = true
 			end
 		end
 		if hasAttr then
 			if hasValue then
-				local attr_bytes = content(offset, attr.length)
-				attrs:add(attr_bytes, string.format("%2.2d", i) .. ": " .. attr.attname .. " (" .. attr_bytes .. ")")
-				offset = offset + attr.length
+				local attr_bytes = content(offset, attr_def.length)
+				local attr = attrs:add(attr_bytes, string.format("%2.2d", i) .. ": " .. attr_def.attname .. " (" .. attr_bytes .. ")")
+				if meClass:uint() == 84 and i == 1 then
+					addVlanTagFilter(attr, attr_bytes)
+				end
+				offset = offset + attr_def.length
 			else
-				attrs:add(string.format("%2.2d", i) .. ": " .. attr.attname)
+				attrs:add(string.format("%2.2d", i) .. ": " .. attr_def.attname)
 			end
 		end
 	end

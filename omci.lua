@@ -38,6 +38,12 @@
 
 --]]
 
+local ethertype = 0x88b5
+local args = {...}
+if 0 < #args then
+	ethertype = args[1]
+end
+
 function toBinStr(hexStr)
 	local num = tonumber(hexStr, 16)
 	local binaryStr = ""
@@ -1139,4 +1145,4 @@ end
 
 -- Register the dissector
 local ether_table = DissectorTable.get( "ethertype" )
-ether_table:add(0x88B5, omciproto)
+ether_table:add(ethertype, omciproto)

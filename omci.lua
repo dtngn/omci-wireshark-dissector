@@ -982,6 +982,64 @@ local omci_def = {
 
 setmetatable(omci_def, mt2)
 
+function addExtVlanOp(tree, content)
+	local offset = 0
+	local bytes, val
+
+	bytes = content(offset, 1)
+	val = bytes:bitfield(0, 4)
+	tree:add(bytes, "Filter outer priority: " .. "" .. "(" .. val .. ")")
+	bytes = content(offset, 3)
+	val = bytes:bitfield(4, 13)
+	tree:add(bytes, "Filter outer VID: " .. "" .. "(" .. val .. ")")
+	bytes = content(offset + 2, 1)
+	val = bytes:bitfield(1, 3)
+	tree:add(bytes, "Filter outer TPID/DEI: " .. "" .. "(" .. val .. ")")
+	offset = offset + 4
+
+	bytes = content(offset, 1)
+	val = bytes:bitfield(0, 4)
+	tree:add(bytes, "Filter inner priority: " .. "" .. "(" .. val .. ")")
+	bytes = content(offset, 3)
+	val = bytes:bitfield(4, 13)
+	tree:add(bytes, "Filter inner VID: " .. "" .. "(" .. val .. ")")
+	bytes = content(offset + 2, 1)
+	val = bytes:bitfield(1, 3)
+	tree:add(bytes, "Filter inner TPID/DEI: " .. "" .. "(" .. val .. ")")
+	bytes = content(offset + 2, 2)
+	val = bytes:bitfield(4, 8)
+	tree:add(bytes, "Filter on extended criteria: " .. "" .. "(" .. val .. ")")
+	bytes = content(offset + 3, 1)
+	val = bytes:bitfield(4, 4)
+	tree:add(bytes, "Filter on ethertype: " .. "" .. "(" .. val .. ")")
+	offset = offset + 4
+
+	bytes = content(offset, 1)
+	val = bytes:bitfield(0, 2)
+	tree:add(bytes, "Treatment tags to remove: " .. "" .. "(" .. val .. ")")
+	bytes = content(offset + 1, 1)
+	val = bytes:bitfield(4, 4)
+	tree:add(bytes, "Treatment outer priority: " .. "" .. "(" .. val .. ")")
+	bytes = content(offset + 2, 2)
+	val = bytes:bitfield(0, 13)
+	tree:add(bytes, "Treatment outer VID: " .. "" .. "(" .. val .. ")")
+	bytes = content(offset + 3, 1)
+	val = bytes:bitfield(5, 3)
+	tree:add(bytes, "Treatment outer TPID/DEI: " .. "" .. "(" .. val .. ")")
+	offset = offset + 4
+
+	bytes = content(offset + 1, 1)
+	val = bytes:bitfield(4, 4)
+	tree:add(bytes, "Treatment inner priority: " .. "" .. "(" .. val .. ")")
+	bytes = content(offset + 2, 2)
+	val = bytes:bitfield(0, 13)
+	tree:add(bytes, "Treatment inner VID: " .. "" .. "(" .. val .. ")")
+	bytes = content(offset + 3, 1)
+	val = bytes:bitfield(5, 3)
+	tree:add(bytes, "Treatment inner TPID/DEI: " .. "" .. "(" .. val .. ")")
+	offset = offset + 4
+end
+
 function addVlanTagFilter(tree, content)
 	local offset = 0
 	local bytes, vid, pbit, dei
@@ -1025,6 +1083,9 @@ function addAttrList(tree, content, offset, meClass, hasValue, hasMask)
 			if hasValue then
 				local attr_bytes = content(offset, attr_def.length)
 				local attr = attrs:add(attr_bytes, string.format("%2.2d", i) .. ": " .. attr_def.attname .. " (" .. attr_bytes .. ")")
+				if meClass:uint() == 171 and i == 6 then
+					addExtVlanOp(attr, attr_bytes)
+				end
 				if meClass:uint() == 84 and i == 1 then
 					addVlanTagFilter(attr, attr_bytes)
 				end

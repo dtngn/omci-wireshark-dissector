@@ -1,42 +1,42 @@
 --[[
-   Wireshark dissector for ITU-T G984.4 and G988 OMCI frames.
-   Copyright (C) 2012 Technicolor
-   Authors:
-   Dirk Van Aken (dirk.vanaken@technicolor.com),
-   Olivier Hardouin (olivier.hardouin@technicolor.com)
+	Wireshark dissector for ITU-T G984.4 and G988 OMCI frames.
+	Copyright (C) 2012 Technicolor
+	Authors:
+	Dirk Van Aken (dirk.vanaken@technicolor.com),
+	Olivier Hardouin (olivier.hardouin@technicolor.com)
 
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License
-   as published by the Free Software Foundation; version 2
-   of the License.
+	This program is free software; you can redistribute it and/or
+	modify it under the terms of the GNU General Public License
+	as published by the Free Software Foundation; version 2
+	of the License.
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-   Description:
-   Wireshark dissector for ONT Management and Control Interface (OMCI) protocol (ITU-T G984.4, ITU-T G988)
-   This protocol is used on Gigabit Passive Optical Network (GPON) between Optical Line Termition (OLT, the network side) and Optical Network Termination (ONT, the end user side) units.
-   This is management protocol used to configure services (like Ethernet, QoS, Video overlay, Tx/Rx control) on the ONT.
-   The dissector applies on UDP or Ethernet packet that contains a copy of OMCI data going between ONT and OLT as explained in appendix III of ITU-T G988
+	Description:
+	Wireshark dissector for ONT Management and Control Interface (OMCI) protocol (ITU-T G984.4, ITU-T G988)
+	This protocol is used on Gigabit Passive Optical Network (GPON) between Optical Line Termition (OLT, the network side) and Optical Network Termination (ONT, the end user side) units.
+	This is management protocol used to configure services (like Ethernet, QoS, Video overlay, Tx/Rx control) on the ONT.
+	The dissector applies on UDP or Ethernet packet that contains a copy of OMCI data going between ONT and OLT as explained in appendix III of ITU-T G988
 
-   Links that were used to create this dissector:
-   General presentation about WS dissector in Lua: http://sharkfest.wireshark.org/sharkfest.09/DT06_Bjorlykke_Lua%20Scripting%20in%20Wireshark.pdf
-   Standard Wireshark dissector: http://www.wireshark.org/docs/wsug_html_chunked/wslua_dissector_example.html
-   Lua Support in Wireshark: http://www.wireshark.org/docs/wsug_html_chunked/wsluarm.html
-   Nice Wireshark dissector example: http://thomasfischer.biz/?p=175
-   Another nice Wireshark dissector example: http://code.google.com/p/eathena/source/browse/devel/FlavioJS/athena.lua?r=9341
+	Links that were used to create this dissector:
+	General presentation about WS dissector in Lua: http://sharkfest.wireshark.org/sharkfest.09/DT06_Bjorlykke_Lua%20Scripting%20in%20Wireshark.pdf
+	Standard Wireshark dissector: http://www.wireshark.org/docs/wsug_html_chunked/wslua_dissector_example.html
+	Lua Support in Wireshark: http://www.wireshark.org/docs/wsug_html_chunked/wsluarm.html
+	Nice Wireshark dissector example: http://thomasfischer.biz/?p=175
+	Another nice Wireshark dissector example: http://code.google.com/p/eathena/source/browse/devel/FlavioJS/athena.lua?r=9341
 
-   The dissector binary to hexadecimal conversion, module available at http://www.dialectronics.com/Lua/code/BinDecHex.shtml
+	The dissector binary to hexadecimal conversion, module available at http://www.dialectronics.com/Lua/code/BinDecHex.shtml
 
-   Note from the author:
-   *) Not all ME classes described in the OMCI standards are supported in this dissector (any support to complete the list is very welcome)
-   *) This implementation is the first LUA SW written by the author. It (certainly) could be more efficient (any comment is welcome)
+	Note from the author:
+	*) Not all ME classes described in the OMCI standards are supported in this dissector (any support to complete the list is very welcome)
+	*) This implementation is the first LUA SW written by the author. It (certainly) could be more efficient (any comment is welcome)
 
 --]]
 
@@ -50,11 +50,11 @@ function omciproto.init()
 end
 
 local msgtype_meta = {
-  __index = function(t, k)
-    if k < 4 or k > 28 then
-      return "Reserved"
-    end
-  end
+	__index = function(t, k)
+		if k < 4 or k > 28 then
+			return "Reserved"
+		end
+	end
 }
 
 local msgtype = {
@@ -87,11 +87,11 @@ local msgtype = {
 setmetatable(msgtype, msgtype_meta)
 
 local msg_result_meta = {
-  __index = function(t, k)
-    if k == 7 or k == 8 or k > 9 then
-      return "Unknown"
-    end
-  end
+	__index = function(t, k)
+		if k == 7 or k == 8 or k > 9 then
+			return "Unknown"
+		end
+	end
 }
 
 local msg_result= {
@@ -123,21 +123,21 @@ local test_message_name_meta = {
 setmetatable(test_message_name, test_message_name_meta)
 
 local mt2 = {
-  __index = function(t2, k)
-	local returntable = {}
-	if k >= 172 and k <= 239 then
-		returntable.me_class_name= "Reserved for future B-PON managed entities (" .. k .. ")"
-	elseif k >= 240 and k <= 255 then
-		returntable.me_class_name= "Reserved for vendor-specific managed entities (" .. k .. ")"
-	elseif k >= 343 and k <= 65279 then
-		returntable.me_class_name= "Reserved for future standardization (" .. k .. ")"
-	elseif k >= 65280 and k <= 65535 then
-		returntable.me_class_name= "Reserved for vendor-specific use (" .. k .. ")"
-	else
-		returntable.me_class_name= "***TBD*** (" .. k .. ")"
-    end
-	return returntable
-  end
+	__index = function(t2, k)
+		local returntable = {}
+		if k >= 172 and k <= 239 then
+			returntable.me_class_name= "Reserved for future B-PON managed entities (" .. k .. ")"
+		elseif k >= 240 and k <= 255 then
+			returntable.me_class_name= "Reserved for vendor-specific managed entities (" .. k .. ")"
+		elseif k >= 343 and k <= 65279 then
+			returntable.me_class_name= "Reserved for future standardization (" .. k .. ")"
+		elseif k >= 65280 and k <= 65535 then
+			returntable.me_class_name= "Reserved for vendor-specific use (" .. k .. ")"
+		else
+			returntable.me_class_name= "***TBD*** (" .. k .. ")"
+		end
+		return returntable
+	end
 }
 
 local omci_def = {
@@ -806,7 +806,7 @@ function omciproto.dissector (buffer, pinfo, tree)
 	-- OMCI Transaction Correlation Identifier
 	local tci = buffer(offset, 2)
 	subtree:add(f.tci, tci)
-	offset = offset +  2
+	offset = offset + 2
 
 	-- OMCI Message Type
 	local msg_type = buffer(offset, 1)
@@ -818,12 +818,12 @@ function omciproto.dissector (buffer, pinfo, tree)
 	msgtype_subtree:add(f.msg_type_ar, msg_type)
 	msgtype_subtree:add(f.msg_type_ak, msg_type)
 	msgtype_subtree:add(f.msg_type_mt, msg_type)
-	offset = offset +  1
+	offset = offset + 1
 
 	-- OMCI Device ID
 	local dev_id = buffer(offset, 1)
 	subtree:add(f.dev_id, dev_id)
-	offset = offset +  1
+	offset = offset + 1
 
 	-- OMCI Message Entity Class & Instance
 	local me_class = buffer(offset, 2)
@@ -834,7 +834,7 @@ function omciproto.dissector (buffer, pinfo, tree)
 --	devid_subtree:add(f.me_class, me_class)
 	devid_subtree:add(f.me_class_str, me_class_name .. " (" .. me_class .. ")")
 	devid_subtree:add(f.me_id, me_instance)
-	offset = offset +  4
+	offset = offset + 4
 
 	-- OMCI Attributes and/or message result
 	local content = buffer(offset, math.min(32, buffer:len() - offset))
@@ -1035,10 +1035,10 @@ function omciproto.dissector (buffer, pinfo, tree)
 		msg_type_mt = "OLT> " .. msg_type_mt
 	end
 
-	while msg_type_mt:len() < 25 do  -- Padding to align ME classes
+	while msg_type_mt:len() < 25 do -- Padding to align ME classes
 		msg_type_mt = msg_type_mt .. " "
 	end
-    pinfo.cols.info:set(msg_type_mt .. " - " .. me_class_name)
+	pinfo.cols.info:set(msg_type_mt .. " - " .. me_class_name)
 	subtree:append_text (", " .. msg_type_mt .. " - " .. me_class_name )	-- at the top of the OMCI tree
 end
 

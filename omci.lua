@@ -127,15 +127,15 @@ local mt2 = {
 	__index = function(t2, k)
 		local returntable = {}
 		if k >= 172 and k <= 239 then
-			returntable.me_class_name= "Reserved for future B-PON managed entities (" .. k .. ")"
+			returntable.me_class_name= "Reserved for future B-PON (" .. k .. ")"
 		elseif k >= 240 and k <= 255 then
-			returntable.me_class_name= "Reserved for vendor-specific managed entities (" .. k .. ")"
+			returntable.me_class_name= "Vendor-specific (" .. k .. ")"
 		elseif k >= 343 and k <= 65279 then
 			returntable.me_class_name= "Reserved for future standardization (" .. k .. ")"
 		elseif k >= 65280 and k <= 65535 then
-			returntable.me_class_name= "Reserved for vendor-specific use (" .. k .. ")"
+			returntable.me_class_name= "Vendor-specific (" .. k .. ")"
 		else
-			returntable.me_class_name= "***TBD*** (" .. k .. ")"
+			returntable.me_class_name= "***Unknown*** (" .. k .. ")"
 		end
 		return returntable
 	end
@@ -1248,8 +1248,8 @@ function omciproto.dissector (buffer, pinfo, tree)
 	while msg_type_mt:len() < 25 do -- Padding to align ME classes
 		msg_type_mt = msg_type_mt .. " "
 	end
-	pinfo.cols.info:set(msg_type_mt .. " - " .. me_class_name)
-	subtree:append_text (", " .. msg_type_mt .. " - " .. me_class_name )	-- at the top of the OMCI tree
+	pinfo.cols.info:set(msg_type_mt .. " - " .. me_class_name .. " [inst:0x" .. me_instance .. "]")
+	subtree:append_text (", " .. msg_type_mt .. " - " .. me_class_name ) -- at the top of the OMCI tree
 end
 
 -- Register the dissector
